@@ -1,61 +1,379 @@
 body {
-    font-family: sans-serif;
-    margin: 20px;
-    background-color: #f4f4f4;
-    color: #333;
-}
-
-h1,
-h2 {
-    color: #0056b3;
-}
-
-ul {
-    list-style: none;
+    font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+    margin: 0;
     padding: 0;
+    background: linear-gradient(135deg, #e3f0ff 0%, #f8f8f8 100%);
+    color: #222;
 }
 
-li {
-    background-color: #fff;
-    margin-bottom: 10px;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+h1 {
+    color: #0056b3;
+    text-align: center;
+    margin-top: 32px;
+    margin-bottom: 12px;
+    font-size: 2.4em;
+    letter-spacing: 2px;
+}
+
+h2 {
+    color: #007bff;
+    margin-top: 32px;
+    margin-bottom: 12px;
+    font-size: 1.3em;
+    border-left: 5px solid #b3d7ff;
+    padding-left: 10px;
+    background: #f4faff;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+#program-list-area {
+    max-width: 800px;
+    margin: 32px auto 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    padding: 32px 24px 24px 24px;
 }
 
 form {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-top: 20px;
+    background: #f7fbff;
+    padding: 24px 20px 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    margin-bottom: 24px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+    color: #0056b3;
 }
 
-input[type="text"] {
-    width: calc(100% - 22px);
-    /* padding と border を考慮 */
+input[type="text"],
+textarea {
+    width: 100%;
     padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    margin-bottom: 14px;
+    border: 1.5px solid #b3d7ff;
+    border-radius: 5px;
+    font-size: 1em;
+    background: #fafdff;
+    transition: border 0.2s;
+}
+
+input[type="text"]:focus,
+textarea:focus {
+    border: 1.5px solid #007bff;
+    outline: none;
+    background: #eaf6ff;
 }
 
 button {
-    background-color: #0056b3;
+    background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
     color: white;
-    padding: 10px 15px;
+    padding: 10px 22px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 1em;
+    font-size: 1.08em;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    transition: background 0.2s, box-shadow 0.2s;
 }
 
 button:hover {
-    background-color: #004494;
+    background: linear-gradient(90deg, #0056b3 60%, #007bff 100%);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.10);
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#language-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 24px;
+    justify-content: center;
+}
+
+.language-box {
+    background: #e3f0ff;
+    color: #0056b3;
+    border-radius: 5px;
+    padding: 8px 18px;
+    font-size: 1.08em;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    transition: background 0.2s, color 0.2s;
+}
+
+.language-box:hover {
+    background: #b3d7ff;
+    color: #003366;
+}
+
+#tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 24px;
+    justify-content: center;
+}
+
+#tag-list li {
+    background: #e3f0ff;
+    color: #007bff;
+    border-radius: 3px;
+    padding: 4px 14px;
+    cursor: pointer;
+    font-size: 1em;
+    list-style: none;
+    margin-bottom: 4px;
+    transition: background 0.2s, color 0.2s;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* 解除ボタンだけ赤色で枠線なし */
+#tag-list li button,
+#clear-tag-filter,
+#clear-tag-filter-inline {
+    background: #f8d7da !important;
+    color: #b30000 !important;
+    border: none !important;
+    padding: 4px 10px !important;
+    border-radius: 3px !important;
+    font-size: 0.95em !important;
+    margin-left: 8px !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+    box-shadow: none !important;
+}
+
+#tag-list li button:hover,
+#clear-tag-filter:hover,
+#clear-tag-filter-inline:hover {
+    background: #f5b7b1 !important;
+    color: #800000 !important;
+}
+
+#program-list {
+    margin-top: 18px;
+}
+
+li {
+    background-color: #fafdff;
+    margin-bottom: 18px;
+    padding: 18px 18px 12px 18px;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    position: relative;
+}
+
+li strong {
+    font-size: 1.5em;
+    color: #0056b3;
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.program-tags {
+    color: #007bff;
+    font-size: 1em;
+    margin-left: 8px;
+    display: block;
+    margin-top: 4px;
+}
+
+.program-tag {
+    cursor: pointer;
+    color: #007bff;
+    text-decoration: underline;
+    margin-right: 8px;
+    font-size: 1em;
+    border-radius: 2px;
+    padding: 2px 6px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.program-tag:hover {
+    background: #e3f0ff;
+    color: #0056b3;
+}
+
+pre {
+    background: #f4faff;
+    border-radius: 5px;
+    padding: 12px;
+    font-size: 1.08em;
+    margin-bottom: 8px;
+    overflow-x: auto;
+    border: 1px solid #e3f0ff;
+}
+
+.comment-area {
+    margin-top: 14px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.comment-list li {
+    margin-bottom: 5px;
+    background: #f7fbff;
+    border-radius: 3px;
+    padding: 6px 10px;
+    font-size: 0.98em;
+}
+
+.edit-comment-btn,
+.delete-comment-btn {
+    font-size: 0.95em;
+    padding: 2px 10px;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    background: #e3f0ff;
+    color: #0056b3;
+    margin-left: 6px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.edit-comment-btn:hover {
+    background: #cce5ff;
+    color: #003366;
+}
+
+.delete-comment-btn {
+    background: #f8d7da;
+    color: #b30000;
+}
+
+.delete-comment-btn:hover {
+    background: #f5b7b1;
+    color: #800000;
+}
+
+#edit-modal {
+    z-index: 1000;
+}
+
+#edit-modal form {
+    box-shadow: none;
+    background: #f7fbff;
+    padding: 0;
+}
+
+#edit-modal h3 {
+    color: #0056b3;
+    margin-bottom: 12px;
+}
+
+#tag-filter-info {
+    margin: 10px 0 0 0;
+    font-size: 1.08em;
+    color: #007bff;
+    text-align: left;
+}
+
+/* コメントの「コメント」ラベルを極小サイズに強制 */
+.comment-toggle {
+    font-size: 0.6em !important;
+    display: inline-block;
+    background: #e3f0ff;
+    color: #007bff;
+    border-radius: 3px;
+    padding: 0px 6px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    border: 1px solid #b3d7ff;
+    text-decoration: underline;
+    transition: background 0.2s, color 0.2s;
+}
+
+.comment-toggle:hover {
+    background: #b3d7ff;
+    color: #0056b3;
+}
+
+/* コマンド（プログラム）枠をあまり強調しないデザインに */
+#program-list li {
+    background: #fafdff;
+    margin-bottom: 18px;
+    padding: 18px 18px 12px 18px;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    border: 1px solid #e3f0ff;
+    position: relative;
+    transition: box-shadow 0.2s, border 0.2s;
+}
+#program-list li:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1.5px solid #b3d7ff;
+}
+
+/* タグと同じ見た目のための調整（既存の .program-tag も流用） */
+.program-tag,
+#tag-list li,
+.comment-toggle {
+    font-size: 1em;
+    border-radius: 3px;
+    padding: 4px 14px;
+    margin-right: 8px;
+    margin-bottom: 4px;
+    background: #e3f0ff;
+    color: #007bff;
+    border: 1px solid #b3d7ff;
+    cursor: pointer;
+    text-decoration: underline;
+    display: inline-block;
+    transition: background 0.2s, color 0.2s;
+}
+
+.program-tag:hover,
+#tag-list li:hover,
+.comment-toggle:hover {
+    background: #b3d7ff;
+    color: #0056b3;
+}
+
+/* コメント詳細エリアも少し余白を */
+.comment-detail-area {
+    margin-top: 10px;
+}
+
+@media (max-width: 700px) {
+    #program-list-area {
+        padding: 10px 2vw 10px 2vw;
+    }
+
+    form {
+        padding: 12px 4vw 10px 4vw;
+    }
+
+    li {
+        padding: 10px 6px 8px 6px;
+    }
+
+    pre {
+        padding: 8px;
+        font-size: 0.98em;
+    }
+
+    li strong {
+        font-size: 1.15em;
+    }
 }

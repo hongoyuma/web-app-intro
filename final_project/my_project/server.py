@@ -2,10 +2,10 @@ from fastapi import FastAPI, Response, HTTPException
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel
 from typing import List, Optional
-
 import sqlite3
 import os
 import uvicorn
+import json
 
 app = FastAPI()
 
@@ -22,10 +22,17 @@ class Program(BaseModel):
     language_id: int
     title: str
     code: str
+    tags: Optional[List[str]] = []
 
 class ProgramUpdate(BaseModel):
     title: Optional[str] = None
     code: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+class Comment(BaseModel):
+    id: Optional[int] = None
+    program_id: int
+    text: str
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -35,7 +42,6 @@ def get_db_connection():
 def initialize_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    # 言語テーブル
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS languages (
@@ -44,7 +50,6 @@ def initialize_db():
         )
         """
     )
-    # プログラムテーブル
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS programs (
@@ -52,7 +57,18 @@ def initialize_db():
             language_id INTEGER NOT NULL,
             title TEXT,
             code TEXT,
+            tags TEXT,
             FOREIGN KEY(language_id) REFERENCES languages(id)
+        )
+        """
+    )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            program_id INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            FOREIGN KEY(program_id) REFERENCES programs(id)
         )
         """
     )
@@ -85,7 +101,6 @@ def create_language(item: Language):
     conn.close()
     return Language(id=item_id, name=item.name)
 
-# コード一覧取得
 @app.get("/languages/{language_id}/programs", response_model=List[Program])
 def get_programs(language_id: int):
     conn = get_db_connection()
@@ -93,25 +108,29 @@ def get_programs(language_id: int):
         "SELECT * FROM programs WHERE language_id = ? ORDER BY id DESC", (language_id,)
     ).fetchall()
     conn.close()
-    return [Program(**dict(item)) for item in items]
+    result = []
+    for item in items:
+        d = dict(item)
+        d["tags"] = json.loads(d["tags"]) if d.get("tags") else []
+        result.append(Program(**d))
+    return result
 
-# コード追加
 @app.post("/languages/{language_id}/programs", response_model=Program, status_code=201)
 def create_program(language_id: int, program: Program):
     if not program.title or not program.code:
         raise HTTPException(status_code=400, detail="title and code are required")
+    tags_json = json.dumps(program.tags or [])
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO programs (language_id, title, code) VALUES (?, ?, ?)",
-        (language_id, program.title, program.code),
+        "INSERT INTO programs (language_id, title, code, tags) VALUES (?, ?, ?, ?)",
+        (language_id, program.title, program.code, tags_json),
     )
     conn.commit()
     program_id = cursor.lastrowid
     conn.close()
-    return Program(id=program_id, language_id=language_id, title=program.title, code=program.code)
+    return Program(id=program_id, language_id=language_id, title=program.title, code=program.code, tags=program.tags or [])
 
-# コード削除
 @app.delete("/programs/{program_id}", status_code=204)
 def delete_program(program_id: int):
     conn = get_db_connection()
@@ -121,7 +140,6 @@ def delete_program(program_id: int):
     conn.close()
     return Response(status_code=204)
 
-# コード編集
 @app.put("/programs/{program_id}", response_model=Program)
 def update_program(program_id: int, update: ProgramUpdate):
     conn = get_db_connection()
@@ -133,15 +151,66 @@ def update_program(program_id: int, update: ProgramUpdate):
         raise HTTPException(status_code=404, detail="Program not found")
     title = update.title if update.title is not None else row["title"]
     code = update.code if update.code is not None else row["code"]
+    tags = update.tags if update.tags is not None else (json.loads(row["tags"]) if row["tags"] else [])
+    tags_json = json.dumps(tags)
     cursor.execute(
-        "UPDATE programs SET title = ?, code = ? WHERE id = ?",
-        (title, code, program_id),
+        "UPDATE programs SET title = ?, code = ?, tags = ? WHERE id = ?",
+        (title, code, tags_json, program_id),
     )
     conn.commit()
     conn.close()
-    return Program(id=program_id, language_id=row["language_id"], title=title, code=code)
+    return Program(id=program_id, language_id=row["language_id"], title=title, code=code, tags=tags)
 
-# ここから下は書き換えない
+@app.get("/programs/{program_id}/comments", response_model=List[Comment])
+def get_comments(program_id: int):
+    conn = get_db_connection()
+    items = conn.execute(
+        "SELECT * FROM comments WHERE program_id = ? ORDER BY id ASC", (program_id,)
+    ).fetchall()
+    conn.close()
+    return [Comment(**dict(item)) for item in items]
+
+@app.post("/programs/{program_id}/comments", response_model=Comment, status_code=201)
+def add_comment(program_id: int, comment: Comment):
+    if not comment.text:
+        raise HTTPException(status_code=400, detail="text is required")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO comments (program_id, text) VALUES (?, ?)",
+        (program_id, comment.text),
+    )
+    conn.commit()
+    comment_id = cursor.lastrowid
+    conn.close()
+    return Comment(id=comment_id, program_id=program_id, text=comment.text)
+
+@app.put("/comments/{comment_id}", response_model=Comment)
+def update_comment(comment_id: int, comment: Comment):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM comments WHERE id = ?", (comment_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Comment not found")
+    cursor.execute(
+        "UPDATE comments SET text = ? WHERE id = ?",
+        (comment.text, comment_id),
+    )
+    conn.commit()
+    conn.close()
+    return Comment(id=comment_id, program_id=row["program_id"], text=comment.text)
+
+@app.delete("/comments/{comment_id}", status_code=204)
+def delete_comment(comment_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM comments WHERE id = ?", (comment_id,))
+    conn.commit()
+    conn.close()
+    return Response(status_code=204)
+
 @app.get("/", response_class=HTMLResponse)
 async def read_html():
     html_file_path = os.path.join(BASE_DIR, "client.html")

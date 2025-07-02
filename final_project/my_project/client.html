@@ -20,9 +20,7 @@
     </form>
 
     <h2>保存言語一覧</h2>
-    <ul id="language-list">
-        <!-- 言語の箱がここに表示されます -->
-    </ul>
+    <ul id="language-list"></ul>
 
     <div id="program-list-area" style="display:none;">
         <h2 id="selected-language-title"></h2>
@@ -31,27 +29,37 @@
             <input type="text" id="program-title" name="program-title" required>
             <label for="program-code">コード:</label>
             <textarea id="program-code" name="program-code" required rows="4" style="width:100%;"></textarea>
+            <label for="program-tags">タグ:</label>
+            <input type="text" id="program-tags" name="program-tags" placeholder="カンマ区切りで入力">
             <button type="submit">追加</button>
         </form>
-        <ul id="program-list">
-            <!-- コード一覧 -->
-        </ul>
-        <!-- 編集用モーダル -->
-        <div id="edit-modal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); align-items:center; justify-content:center;">
-            <div style="background:#fff; padding:20px; border-radius:8px; min-width:300px; max-width:90vw;">
-                <h3>コード編集</h3>
-                <form id="edit-program-form">
-                    <label for="edit-program-title">タイトル:</label>
-                    <input type="text" id="edit-program-title" required>
-                    <label for="edit-program-code">コード:</label>
-                    <textarea id="edit-program-code" rows="4" style="width:100%;" required></textarea>
-                    <div style="margin-top:10px; display:flex; gap:10px;">
-                        <button type="submit">保存</button>
-                        <button type="button" id="edit-cancel-btn">キャンセル</button>
-                        <button type="button" id="edit-delete-btn" style="margin-left:auto; color:#fff; background:#d9534f;">削除</button>
-                    </div>
-                </form>
-            </div>
+
+        <!-- タグ一覧をここに移動 -->
+        <h2>タグ一覧</h2>
+        <ul id="tag-list"></ul>
+
+        <ul id="program-list"></ul>
+    </div>
+
+    <!-- 編集用モーダル -->
+    <div id="edit-modal"
+        style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); align-items:center; justify-content:center;">
+        <div style="background:#fff; padding:20px; border-radius:8px; min-width:300px; max-width:90vw;">
+            <h3>コード編集</h3>
+            <form id="edit-program-form">
+                <label for="edit-program-title">タイトル:</label>
+                <input type="text" id="edit-program-title" required>
+                <label for="edit-program-code">コード:</label>
+                <textarea id="edit-program-code" rows="4" style="width:100%;" required></textarea>
+                <label for="edit-program-tags">タグ:</label>
+                <input type="text" id="edit-program-tags" placeholder="カンマ区切りで入力">
+                <div style="margin-top:10px; display:flex; gap:10px;">
+                    <button type="submit">保存</button>
+                    <button type="button" id="edit-cancel-btn">キャンセル</button>
+                    <button type="button" id="edit-delete-btn"
+                        style="margin-left:auto; color:#fff; background:#d9534f;">削除</button>
+                </div>
+            </form>
         </div>
     </div>
 
