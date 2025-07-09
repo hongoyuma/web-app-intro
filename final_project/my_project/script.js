@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const languageList = document.getElementById('language-list');
     const addLanguageForm = document.getElementById('add-language-form');
     const languageNameInput = document.getElementById('language-name');
@@ -17,31 +17,112 @@ document.addEventListener('DOMContentLoaded', () => {
     const editCancelBtn = document.getElementById('edit-cancel-btn');
     const editDeleteBtn = document.getElementById('edit-delete-btn');
     const tagList = document.getElementById('tag-list');
+    const favoriteList = document.getElementById('favorite-list');
+    const tagBarList = document.getElementById('tag-bar-list');
+    const tagPrevBtn = document.getElementById('tag-prev-btn');
+    const tagNextBtn = document.getElementById('tag-next-btn');
 
     let currentLanguage = null;
     let editingProgram = null;
     let currentTagFilter = null;
 
-    // タグ一覧を取得して表示
-    async function fetchAndShowTags() {
-        // 全言語の全プログラムからタグを集計
-        let allTags = new Set();
-        const langRes = await fetch('/languages');
-        if (!langRes.ok) return;
-        const languages = await langRes.json();
-        for (const lang of languages) {
-            const progRes = await fetch(`/languages/${lang.id}/programs`);
-            if (!progRes.ok) continue;
-            const programs = await progRes.json();
-            programs.forEach(p => {
-                (p.tags || []).forEach(tag => allTags.add(tag));
-            });
-        }
-        tagList.innerHTML = '';
-        if (allTags.size === 0) {
-            tagList.innerHTML = '<li>（タグはありません）</li>';
+    // タグバー用ページング
+    let tagBarPage = 0;
+    const TAGS_PER_PAGE = 10;
+    let tagBarTags = [];
+
+    // タグバー表示更新
+    function updateTagBar() {
+        tagBarList.innerHTML = '';
+        if (!currentLanguage) {
+            tagBarList.innerHTML = '<li style="color:#888;">（言語を選択してください）</li>';
+            tagPrevBtn.style.display = 'none';
+            tagNextBtn.style.display = 'none';
             return;
         }
+        if (tagBarTags.length === 0) {
+            tagBarList.innerHTML = '<li style="color:#888;">（タグはありません）</li>';
+            tagPrevBtn.style.display = 'none';
+            tagNextBtn.style.display = 'none';
+            return;
+        }
+        const start = tagBarPage * TAGS_PER_PAGE;
+        const end = start + TAGS_PER_PAGE;
+        const pageTags = tagBarTags.slice(start, end);
+
+        pageTags.forEach(tag => {
+            const li = document.createElement('li');
+            li.textContent = tag;
+            li.className = 'program-tag';
+            li.style.cursor = 'pointer';
+            if (currentTagFilter === tag) {
+                li.style.background = '#b3d7ff';
+                li.style.color = '#0056b3';
+            }
+            li.addEventListener('click', () => {
+                currentTagFilter = tag;
+                fetchPrograms(currentLanguage);
+                showTagFilterInfo();
+                updateTagBar();
+            });
+            tagBarList.appendChild(li);
+        });
+
+        // ページ送りボタン表示制御
+        tagPrevBtn.style.display = tagBarPage > 0 ? '' : 'none';
+        tagNextBtn.style.display = end < tagBarTags.length ? '' : 'none';
+    }
+
+    tagPrevBtn.onclick = () => {
+        if (tagBarPage > 0) {
+            tagBarPage--;
+            updateTagBar();
+        }
+    };
+    tagNextBtn.onclick = () => {
+        if ((tagBarPage + 1) * TAGS_PER_PAGE < tagBarTags.length) {
+            tagBarPage++;
+            updateTagBar();
+        }
+    };
+
+    // タグ一覧を取得して表示（言語ごと、タグバー用）
+    async function fetchAndShowTags() {
+        tagList.innerHTML = '';
+        if (!currentLanguage) {
+            tagList.innerHTML = '<li>（言語を選択してください）</li>';
+            tagBarTags = [];
+            tagBarPage = 0;
+            updateTagBar();
+            return;
+        }
+        let allTags = new Set();
+        const progRes = await fetch(`/languages/${currentLanguage.id}/programs`);
+        if (!progRes.ok) {
+            tagList.innerHTML = '<li>（タグの取得に失敗）</li>';
+            tagBarTags = [];
+            tagBarPage = 0;
+            updateTagBar();
+            return;
+        }
+        const programs = await progRes.json();
+        console.log("取得したプログラム", programs); // ←追加
+        programs.forEach(p => {
+            console.log("p.tagsの型", typeof p.tags, p.tags); // ←追加
+            (p.tags || []).forEach(tag => allTags.add(tag));
+        });
+        if (allTags.size === 0) {
+            tagList.innerHTML = '<li>（タグはありません）</li>';
+            tagBarTags = [];
+            tagBarPage = 0;
+            updateTagBar();
+            return;
+        }
+        tagBarTags = Array.from(allTags).sort();
+        tagBarPage = 0;
+        updateTagBar();
+
+        // サイドバー用タグリストも更新（必要なら）
         Array.from(allTags).sort().forEach(tag => {
             const li = document.createElement('li');
             li.textContent = tag;
@@ -51,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentTagFilter = tag;
                 fetchPrograms(currentLanguage);
                 showTagFilterInfo();
+                updateTagBar();
             });
             tagList.appendChild(li);
         });
@@ -61,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentTagFilter = null;
             fetchPrograms(currentLanguage);
             showTagFilterInfo();
+            updateTagBar();
         };
         tagList.appendChild(clearLi);
     }
@@ -70,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/languages');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const languages = await response.json();
+            const languages = await response.json(); // ← これが必須
             languageList.innerHTML = '';
             languages.forEach(lang => {
                 const li = document.createElement('li');
@@ -80,12 +163,59 @@ document.addEventListener('DOMContentLoaded', () => {
                 li.addEventListener('click', () => {
                     showProgramList(lang);
                 });
+
+                // 削除ボタン追加（基本は非表示、liにホバーしたときだけ表示）
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '&times;'; // ×マーク
+                deleteBtn.title = '削除';
+                deleteBtn.style.marginLeft = '12px';
+                deleteBtn.style.background = 'transparent';
+                deleteBtn.style.color = '#b30000';
+                deleteBtn.style.border = 'none';
+                deleteBtn.style.borderRadius = '50%';
+                deleteBtn.style.padding = '2px 10px';
+                deleteBtn.style.fontSize = '1.3em';
+                deleteBtn.style.cursor = 'pointer';
+                deleteBtn.style.verticalAlign = 'middle';
+                deleteBtn.style.display = 'none'; // ← 基本は非表示
+
+                li.addEventListener('mouseenter', () => {
+                    deleteBtn.style.display = '';
+                });
+                li.addEventListener('mouseleave', () => {
+                    deleteBtn.style.display = 'none';
+                });
+
+                deleteBtn.onmouseenter = () => {
+                    deleteBtn.style.background = '#f8d7da';
+                };
+                deleteBtn.onmouseleave = () => {
+                    deleteBtn.style.background = 'transparent';
+                };
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (confirm(`「${lang.name}」を削除しますか？（この言語の全プログラムも削除されます）`)) {
+                        const res = await fetch(`/languages/${lang.id}`, { method: 'DELETE' });
+                        if (res.ok) {
+                            await fetchLanguages();
+                            programListArea.style.display = 'none';
+                        } else {
+                            alert('削除に失敗しました');
+                        }
+                    }
+                });
+                li.appendChild(deleteBtn);
+
                 languageList.appendChild(li);
             });
+            if (languages.length > 0 && !currentLanguage) {
+                await showProgramList(languages[0]);
+            }
         } catch (error) {
+            console.error("fetchLanguages error:", error);
             languageList.innerHTML = '<li>言語の取得に失敗しました。</li>';
         }
-        await fetchAndShowTags();
+        // await fetchAndShowTags(); // ←この行は不要
     }
 
     // 言語追加フォームの送信
@@ -312,41 +442,80 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         programs.forEach(program => {
             const li = document.createElement('li');
-            // タグをクリック可能なspanで表示
-            let tagsHtml = '';
-            if (program.tags && program.tags.length > 0) {
-                tagsHtml = program.tags.map(tag =>
-                    `<span class="program-tag" style="cursor:pointer; color:#007bff; text-decoration:underline; margin-right:4px;">${escapeHtml(tag)}</span>`
-                ).join('');
-            }
-            li.innerHTML = `
-                <strong>${escapeHtml(program.title)}</strong>
-                <pre style="white-space:pre-wrap;background:#f8f8f8;padding:8px;border-radius:4px;cursor:pointer;">${escapeHtml(program.code)}</pre>
-                <span class="program-tags" style="color:#888;font-size:0.9em;margin-left:8px;">${tagsHtml}</span>
-            `;
-            // コードクリックで編集UI＋削除ボタン
-            li.querySelector('pre').addEventListener('click', () => {
+            // ★ボタン追加
+            const starBtn = document.createElement('span');
+            starBtn.textContent = isFavorite(program.id) ? '★' : '☆';
+            starBtn.style.cursor = 'pointer';
+            starBtn.style.color = '#ffb300';
+            starBtn.style.fontSize = '1.3em';
+            starBtn.style.position = 'absolute';
+            starBtn.style.top = '12px';
+            starBtn.style.right = '18px';
+            starBtn.title = isFavorite(program.id) ? 'お気に入り解除' : 'お気に入り追加';
+            starBtn.onclick = (e) => {
+                e.stopPropagation();
+                toggleFavorite(program);
+                starBtn.textContent = isFavorite(program.id) ? '★' : '☆';
+                starBtn.title = isFavorite(program.id) ? 'お気に入り解除' : 'お気に入り追加';
+            };
+            li.appendChild(starBtn);
+
+            // タイトル
+            const strong = document.createElement('strong');
+            strong.textContent = program.title;
+            li.appendChild(strong);
+
+            // コード
+            const pre = document.createElement('pre');
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.style.background = '#f8f8f8';
+            pre.style.padding = '8px';
+            pre.style.borderRadius = '4px';
+            pre.style.cursor = 'pointer';
+            pre.innerHTML = escapeHtml(program.code);
+            pre.addEventListener('click', () => {
                 editingProgram = program;
                 editProgramTitle.value = program.title;
                 editProgramCode.value = program.code;
                 editProgramTags.value = (program.tags || []).join(', ');
                 editModal.style.display = 'flex';
             });
-            // タグクリックでフィルタ
-            li.querySelectorAll('.program-tag').forEach(tagEl => {
-                tagEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    currentTagFilter = tagEl.textContent;
-                    fetchPrograms(currentLanguage);
-                    showTagFilterInfo();
+            li.appendChild(pre);
+
+            // タグ
+            if (program.tags && program.tags.length > 0) {
+                const tagsSpan = document.createElement('span');
+                tagsSpan.className = 'program-tags';
+                tagsSpan.style.color = '#888';
+                tagsSpan.style.fontSize = '0.9em';
+                tagsSpan.style.marginLeft = '8px';
+                program.tags.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'program-tag';
+                    tagEl.textContent = tag;
+                    tagEl.style.cursor = 'pointer';
+                    tagEl.style.color = '#007bff';
+                    tagEl.style.textDecoration = 'underline';
+                    tagEl.style.marginRight = '4px';
+                    tagEl.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        currentTagFilter = tag;
+                        fetchPrograms(currentLanguage);
+                        showTagFilterInfo();
+                    });
+                    tagsSpan.appendChild(tagEl);
                 });
-            });
+                li.appendChild(tagsSpan);
+            }
+
             // コメントエリア追加
             const commentDiv = createCommentArea(program.id);
             li.appendChild(commentDiv);
+
             programList.appendChild(li);
         });
         showTagFilterInfo();
+        updateTagBar();
     }
 
     // タグフィルタ情報と解除ボタン表示
@@ -425,11 +594,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 言語の箱クリック時にコード一覧を表示
-    function showProgramList(lang) {
+    async function showProgramList(lang) {
         currentLanguage = lang;
         selectedLanguageTitle.textContent = `${lang.name} のコード一覧`;
         programListArea.style.display = 'block';
-        fetchPrograms(lang);
+        currentTagFilter = null; // ← 言語切り替え時にタグフィルタ解除
+        await fetchPrograms(lang);
+        await fetchAndShowTags();
+        showTagFilterInfo();
+        updateTagBar();
     }
 
     // HTMLエスケープ
@@ -445,6 +618,81 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // お気に入りIDリストをローカルストレージで管理
+    function getFavorites() {
+        return JSON.parse(localStorage.getItem('favorites') || '[]');
+    }
+    function setFavorites(favs) {
+        localStorage.setItem('favorites', JSON.stringify(favs));
+    }
+    function isFavorite(programId) {
+        return getFavorites().includes(programId);
+    }
+    function toggleFavorite(program) {
+        let favs = getFavorites();
+        if (favs.includes(program.id)) {
+            favs = favs.filter(id => id !== program.id);
+        } else {
+            favs.push(program.id);
+        }
+        setFavorites(favs);
+        updateFavoriteSidebar();
+    }
+
+    // お気に入りサイドバーの更新
+    async function updateFavoriteSidebar() {
+        const favIds = getFavorites();
+        favoriteList.innerHTML = '';
+        if (favIds.length === 0) {
+            favoriteList.innerHTML = '<li>（お気に入りなし）</li>';
+            return;
+        }
+        // プログラム情報を取得
+        for (const id of favIds) {
+            // プログラム情報取得APIがないので全言語から検索
+            let found = false;
+            const langRes = await fetch('/languages');
+            if (!langRes.ok) continue;
+            const languages = await langRes.json();
+            for (const lang of languages) {
+                const progRes = await fetch(`/languages/${lang.id}/programs`);
+                if (!progRes.ok) continue;
+                const programs = await progRes.json();
+                const prog = programs.find(p => p.id === id);
+                if (prog) {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span style="color:#ffb300;">★</span> <span style="cursor:pointer; color:#0056b3; text-decoration:underline;">${escapeHtml(prog.title)}</span>`;
+                    li.onclick = () => {
+                        currentLanguage = lang;
+                        selectedLanguageTitle.textContent = `${lang.name} のコード一覧`;
+                        programListArea.style.display = 'block';
+                        fetchPrograms(lang).then(() => {
+                            // スクロールして該当プログラムを目立たせる
+                            setTimeout(() => {
+                                const items = programList.querySelectorAll('li');
+                                for (const item of items) {
+                                    if (item.querySelector('strong') && item.querySelector('strong').textContent === prog.title) {
+                                        item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        item.style.boxShadow = '0 0 0 3px #ffb300';
+                                        setTimeout(() => item.style.boxShadow = '', 1200);
+                                    }
+                                }
+                            }, 300);
+                        });
+                    };
+                    favoriteList.appendChild(li);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // 削除された場合
+                setFavorites(favIds.filter(fid => fid !== id));
+            }
+        }
+    }
+
     // 初期表示
-    fetchLanguages();
+    await fetchLanguages();         // ← awaitを付けて呼び出す
+    updateFavoriteSidebar();
 });

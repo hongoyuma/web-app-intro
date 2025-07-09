@@ -34,10 +34,6 @@
             <button type="submit">追加</button>
         </form>
 
-        <!-- タグ一覧をここに移動 -->
-        <h2>タグ一覧</h2>
-        <ul id="tag-list"></ul>
-
         <ul id="program-list"></ul>
     </div>
 
@@ -63,7 +59,25 @@
         </div>
     </div>
 
+    <div id="favorite-sidebar"
+        style="position:fixed; top:80px; right:0; width:220px; background:#f7fbff; border-radius:8px 0 0 8px; box-shadow:-2px 2px 8px rgba(0,0,0,0.08); padding:14px 10px 14px 18px; z-index:100; min-height:120px;">
+        <h3 style="font-size:1.1em; color:#0056b3; margin-top:0;">★ お気に入り</h3>
+        <ul id="favorite-list" style="font-size:0.98em; margin:0; padding:0; list-style:none;"></ul>
+    </div>
+
+    <!-- タグ一覧を画面上部に細長く固定表示（ページ送り付き） -->
+    <div id="tag-bar"
+        style="position:fixed; top:0; left:0; width:100vw; background:#f7fbff; border-bottom:1.5px solid #b3d7ff; z-index:200; min-height:48px; display:flex; align-items:center; padding:6px 18px 6px 18px; box-sizing:border-box;">
+        <span style="font-size:1.08em; color:#007bff; font-weight:bold; margin-right:18px;">タグ一覧</span>
+        <button id="tag-prev-btn" style="margin-right:8px; display:none;">◀</button>
+        <ul id="tag-bar-list"
+            style="display:flex; flex-wrap:nowrap; gap:10px; margin:0; padding:0; list-style:none; overflow-x:auto;">
+        </ul>
+        <button id="tag-next-btn" style="margin-left:8px; display:none;">▶</button>
+    </div>
+
     <script src="script.js"></script>
+    <ul id="tag-list"></ul>
 </body>
 
 </html>
